@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int              @id @default(autoincrement())
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  email          String           @unique
+  password       String
+  money          Float?           @default(0.0)
+  is_helper      Boolean          @default(false)
+  is_mother      Boolean          @default(false)
+  issuesCreated  Issue[]          @relation("complainer")
+  issuesHelped   Issue[]          @relation("helper")
+  motherId       Int?             @unique
+  mother         User?            @relation("MotherAccount", fields: [motherId], references: [id])
+  child          User?            @relation("MotherAccount")
+  paymentHistory PaymentHistory[]
+  contact        ContactMethods?
+  notify         Boolean          @default(true)
+}
+
+model Issue {
+  id           Int              @id @default(autoincrement())
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  title        String
+  description  String           @db.Text
+  solution     String?          @db.Text
+  status       String
+  complainerId Int
+  helperId     Int?
+  complainer   User             @relation(fields: [complainerId], references: [id], name: "complainer")
+  helper       User?            @relation(fields: [helperId], references: [id], name: "helper")
+  payment      PaymentHistory[]
+}
+
+//make a new table that contains information additional contact information, other than just the helper's email.
+//such as: phone number, phone text(boolean), zoom link, primary. and link it up to the user table in a 1:1 relationship
+
+model ContactMethods {
+  id          Int     @id @default(autoincrement())
+  phoneNum    String? @default("000-000-0000")
+  zoomLink    String? @default("000-000-0000")
+  canCall     Boolean @default(false) //helpers allow mothers to call their phone number
+  canText     Boolean @default(false) //helpers allow mothers to text them
+  canZoomCall Boolean @default(false) //helpers allow mothers to do zoom calls with them
+  user        User    @relation(fields: [userId], references: [id])
+  userId      Int     @unique
+}
+
+model PaymentHistory {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  amount    Float
+  desc      String
+  issue     Issue?   @relation(fields: [issueId], references: [id])
+  issueId   Int?
+  payer     User     @relation(fields: [userId], references: [id])
+  userId    Int
+}
